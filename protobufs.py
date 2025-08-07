@@ -3,6 +3,7 @@ import struct
 class ProtoBufs:
     def decode(msg):
         dic = {}
+        lis = []
         if len(msg) > 0:
             idx = 0
             while len(msg) > idx:
@@ -22,13 +23,24 @@ class ProtoBufs:
                     size, width = ProtoBufs.devar(msg[idx:])
                     tmp = msg[idx + width:idx + width + size]
                     if size > 2: # fixme: determination of bytes and embedded
+                        printable = True
                         try:
                             if tmp.decode('utf-8').isprintable():
                                 dic[str(key)] = tmp
                             else:
-                                dic[str(key)] = ProtoBufs.decode(tmp)
+                                printable = False
                         except UnicodeDecodeError:
-                            dic[str(key)] = ProtoBufs.decode(tmp)
+                            printable = False
+
+                        if not printable:
+                            if str(key) in dic:
+                                if type(dic[str(key)]) == dict:
+                                    tmp2 = dic[str(key)]
+                                    lis.append(tmp2)
+                                    dic[str(key)] = lis
+                                dic[str(key)].append(ProtoBufs.decode(tmp))
+                            else:
+                                dic[str(key)] = ProtoBufs.decode(tmp)
                     else:
                         dic[str(key)] = tmp
                     idx = idx + width + size
@@ -51,6 +63,11 @@ class ProtoBufs:
                 emb = ProtoBufs.encode(dic[key])
                 blen = ProtoBufs.envar(len(emb))
                 msg = msg + ProtoBufs.envar((int(key)<<3 | 0x02)) + blen + emb
+            elif type(dic[key]) == list: # embedded
+                for item in dic[key]:
+                    emb = ProtoBufs.encode(item)
+                    blen = ProtoBufs.envar(len(emb))
+                    msg = msg + ProtoBufs.envar((int(key)<<3 | 0x02)) + blen + emb
             elif "var" in key: # uint32
                 msg = msg + ProtoBufs.envar((int(key.split(':')[0])<<3 | 0x00)) + ProtoBufs.envar(dic[key])
             elif "f32" in key: # i32
@@ -76,15 +93,15 @@ class ProtoBufs:
         msg = b''
         for i in range(5):
             if var >> 7:
-                msg = msg + (var & 0x3f | 0x80).to_bytes()
+                msg = msg + (var & 0x7f | 0x80).to_bytes()
                 var = var >> 7
             else:
-                msg = msg + (var & 0x3f | 0x00).to_bytes()
+                msg = msg + (var & 0x7f | 0x00).to_bytes()
                 break
         return msg
 
 def main():
-    dic1 = {"1:var": 256, "256:var": 1, "2": {"1": b"bytes", "2:f32": 0.1}}
+    dic1 = {"1:var": 256, "256:var": 1, "2": {"1": [{"1": b"john", "2:f32": 0.1}, {"1": b"jane", "2:f32": 0.2}]}}
     print(dic1)
     msg1 = ProtoBufs.encode(dic1)
     print(msg1)
