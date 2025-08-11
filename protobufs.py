@@ -36,6 +36,8 @@ class ProtoBufs:
                             lis.append(tmp2)
                             dic[str(key)] = lis
                         try:
+                            if ProtoBufs.is_printable(tmp):
+                                raise ValueError
                             dic[str(key)].append(ProtoBufs.decode(tmp))
                         except:
                             if ProtoBufs.is_printable(tmp):
@@ -44,6 +46,8 @@ class ProtoBufs:
                                 dic[str(key) + ":hex"].append(binascii.hexlify(tmp).decode())
                     else:
                         try:
+                            if ProtoBufs.is_printable(tmp):
+                                raise ValueError
                             dic[str(key)] = ProtoBufs.decode(tmp)
                         except:
                             if ProtoBufs.is_printable(tmp):
@@ -122,8 +126,8 @@ class ProtoBufs:
             val = char if isinstance(char, int) else ord(char)
             if 0x20 <= val <= 0x7E:
                 continue
-            elif char in ('\n', '\r', '\t'):
-                continue
+            #elif char in ('\n', '\r', '\t'):
+            #    continue
             else:
                 return False
         return True
