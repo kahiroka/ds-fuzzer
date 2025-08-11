@@ -39,7 +39,7 @@ class RequestModifier:
         
         encoded = ProtoBufs.encode(json.loads(body))
         modified_bytes = struct.pack("B", 0x00) + struct.pack(">I", len(encoded)) + encoded
-        print(binascii.hexlify(modified_bytes))
+        #print(binascii.hexlify(modified_bytes))
 
         # Reconstruct request
         modified_request = self.helpers.buildHttpMessage(headers, modified_bytes)
@@ -103,7 +103,7 @@ class CustomRepeaterMenuHandler(ActionListener):
                 request_response.getHttpService().getPort(),
                 request_response.getHttpService().getProtocol() == "https",
                 modified_request,
-                "gRPC-Web request"
+                "gRPC-Web"
             )
             print("Sent to Repeater")
             
@@ -133,7 +133,6 @@ class BurpExtender(IBurpExtender, IHttpListener, IContextMenuFactory):
         print("gRPC-Web extension loaded")
     
     def processHttpMessage(self, toolFlag, messageIsRequest, messageInfo):
-        print("processHttpMessage")
         # Only process requests, not responses
         if not messageIsRequest:
             return
@@ -148,6 +147,7 @@ class BurpExtender(IBurpExtender, IHttpListener, IContextMenuFactory):
         
         # Check if the request is coming from a tool we want to modify
         if toolFlag == self.callbacks.TOOL_INTRUDER or toolFlag == self.callbacks.TOOL_REPEATER:
+            print("processHttpMessage")
             try:
                 # Encode the request
                 modified_request = self.request_modifier.grpcweb_encode(request)
